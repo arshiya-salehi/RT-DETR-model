@@ -1,0 +1,10 @@
+# RT-DETR dental detection dependencies
+# Install AFTER PyTorch:
+#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+transformers>=4.40.0
+pycocotools>=2.0.7
+opencv-python>=4.9.0
+Pillow>=10.0.0
+numpy>=1.24.0
+accelerate>=0.28.0
