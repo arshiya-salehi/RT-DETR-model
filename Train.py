@@ -9,7 +9,7 @@ decoder. It works natively with COCO-format annotations (bounding boxes only —
 no segmentation masks required).
 
 Dataset:  327 train images | 109 val images | 11 classes
-Model:    RT-DETR-L (rtdetr_l.yml) with COCO pretrained weights
+Model:    RT-DETR-R50 (rtdetr_r50vd) with COCO pretrained weights
 Hardware: NVIDIA A100 GPU (GPU index 1 on shared server)
 
 Usage:
@@ -92,8 +92,8 @@ NUM_WORKERS  = 4
 SCORE_THRESH = 0.4      # inference confidence threshold
 SAVE_EVERY   = 5        # save a checkpoint every N epochs
 
-# Pretrained model — RT-DETR-L is the best accuracy/speed tradeoff
-PRETRAINED_MODEL = "PekingU/rtdetr_l"
+# Pretrained model — RT-DETR-R50 is the best accuracy/speed tradeoff
+PRETRAINED_MODEL = "PekingU/rtdetr_r50vd"
 
 
 # ── LOGGING ───────────────────────────────────────────────────────────────────

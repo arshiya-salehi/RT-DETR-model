@@ -68,7 +68,7 @@ CLASS_NAMES = [
     "decay",
 ]
 NUM_CLASSES      = len(CLASS_NAMES)
-PRETRAINED_MODEL = "PekingU/rtdetr_l"
+PRETRAINED_MODEL = "PekingU/rtdetr_r50vd"
 IMG_SIZE         = 640
 
 COLORS = [
