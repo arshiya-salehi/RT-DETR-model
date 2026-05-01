@@ -175,10 +175,12 @@ def run_coco_eval(coco_gt, all_predictions, split: str, logger):
 
     # Per-class AP@50 ─────────────────────────────────────────────────────────
     per_class = {}
-    for cat_id, cat_name in enumerate(CLASS_NAMES):
+    cat_ids = coco_gt.getCatIds()
+    for cat_id, cat_name in zip(cat_ids, CLASS_NAMES):
         coco_eval.params.catIds = [cat_id]
         coco_eval.evaluate()
         coco_eval.accumulate()
+        coco_eval.summarize()
         ap50 = float(coco_eval.stats[1]) if len(coco_eval.stats) > 1 else -1.0
         per_class[cat_name] = round(ap50, 4)
     metrics["per_class_AP50"] = per_class
