@@ -146,6 +146,16 @@ CUDA_VISIBLE_DEVICES=1 python Predict.py --input dataset/images/test/
 CUDA_VISIBLE_DEVICES=1 python Predict.py --input path/to/image.jpeg --threshold 0.5
 ```
 
+### Step 6 — Archive Results (GitHub Tracking)
+
+When a training run finishes and you want to save the results to GitHub without committing massive `.pth` model weights, run:
+
+```bash
+python Save_Experiment.py "optional_note"
+```
+
+This will safely copy your logs, validation metrics, and exact hyperparameters (extracted automatically from `Train.py`) into a timestamped folder inside `experiments/`. You can then `git commit` this folder to track your progress safely!
+
 ---
 
 ## Output Metrics
