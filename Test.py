@@ -69,7 +69,7 @@ CLASS_NAMES = [
 ]
 NUM_CLASSES      = len(CLASS_NAMES)
 PRETRAINED_MODEL = "PekingU/rtdetr_r50vd"
-IMG_SIZE         = 640
+IMG_SIZE         = 1024
 
 COLORS = [
     (255,  69,   0), (  0, 128, 255), (  0, 255, 128), (255, 215,   0),

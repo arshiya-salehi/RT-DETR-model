@@ -69,7 +69,7 @@ CLASS_NAMES = [
 ]
 NUM_CLASSES    = len(CLASS_NAMES)
 PRETRAINED_MODEL = "PekingU/rtdetr_r50vd"
-IMG_SIZE       = 640
+IMG_SIZE       = 1024
 
 # Distinct BGR colors per class (for cv2 visualization)
 COLORS = [
