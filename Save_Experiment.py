@@ -40,6 +40,11 @@ def main():
     if os.path.exists("output/val_results"):
         shutil.copytree("output/val_results", f"{exp_dir}/val_results")
         print("✅ Copied output/val_results/")
+        
+    # 1.5. Copy test results
+    if os.path.exists("output/test_results"):
+        shutil.copytree("output/test_results", f"{exp_dir}/test_results")
+        print("✅ Copied output/test_results/")
     
     # 2. Copy training history
     if os.path.exists("output/training_history.json"):
