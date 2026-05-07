@@ -48,11 +48,6 @@ DATASET_DIR = BASE_DIR / "dataset"
 ANN_DIR     = DATASET_DIR / "annotations"
 IMG_DIR     = DATASET_DIR / "images"
 OUTPUT_DIR  = BASE_DIR / "output"
-VAL_DIR     = OUTPUT_DIR / "val_results"
-VIS_DIR     = VAL_DIR / "visualizations"
-
-VAL_DIR.mkdir(parents=True, exist_ok=True)
-VIS_DIR.mkdir(parents=True, exist_ok=True)
 
 CLASS_NAMES = [
     "Apical Lesion",
@@ -80,12 +75,12 @@ COLORS = [
 
 
 # ── LOGGING ───────────────────────────────────────────────────────────────────
-def setup_logging():
+def setup_logging(res_dir: Path):
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
         handlers=[
-            logging.FileHandler(VAL_DIR / "val.log"),
+            logging.FileHandler(res_dir / "eval.log"),
             logging.StreamHandler(sys.stdout),
         ],
     )
@@ -222,11 +217,17 @@ def main():
     parser.add_argument("--threshold", type=float, default=0.4)
     parser.add_argument("--no-vis",    action="store_true")
     parser.add_argument("--max-vis",   type=int, default=20)
+    parser.add_argument("--split",     choices=["val", "test"], default="val")
     args = parser.parse_args()
 
-    logger = setup_logging()
+    res_dir = OUTPUT_DIR / f"{args.split}_results"
+    vis_dir = res_dir / "visualizations"
+    res_dir.mkdir(parents=True, exist_ok=True)
+    vis_dir.mkdir(parents=True, exist_ok=True)
+
+    logger = setup_logging(res_dir)
     logger.info("=" * 60)
-    logger.info("INF-117 Dental Detection — RT-DETR Validation")
+    logger.info(f"INF-117 Dental Detection — RT-DETR {args.split.capitalize()}")
     logger.info("=" * 60)
 
     if not torch.cuda.is_available():
@@ -248,16 +249,16 @@ def main():
     processor = RTDetrImageProcessor.from_pretrained(PRETRAINED_MODEL)
     model     = load_model(weights_path, device)
 
-    coco_gt = COCO(str(ANN_DIR / "val.json"))
+    coco_gt = COCO(str(ANN_DIR / f"{args.split}.json"))
     img_ids = sorted(coco_gt.imgs.keys())
     predictions = []
     vis_saved   = 0
 
-    logger.info(f"Running inference on {len(img_ids)} validation images...")
+    logger.info(f"Running inference on {len(img_ids)} {args.split} images...")
 
     for img_id in img_ids:
         img_info = coco_gt.imgs[img_id]
-        img_path = IMG_DIR / "val" / img_info["file_name"]
+        img_path = IMG_DIR / args.split / img_info["file_name"]
 
         boxes_xyxy, scores, class_ids, orig_size = run_inference(
             model, processor, img_path, device, args.threshold
@@ -279,32 +280,32 @@ def main():
 
         # Save visualization
         if not args.no_vis and vis_saved < args.max_vis:
-            out_path = VIS_DIR / img_info["file_name"]
+            out_path = vis_dir / img_info["file_name"]
             save_visualization(img_path, boxes_xyxy, scores, class_ids, out_path)
             vis_saved += 1
 
     logger.info(f"Total predictions: {len(predictions)}")
 
     # COCO evaluation
-    metrics = run_coco_eval(coco_gt, predictions, "Validation", logger)
+    metrics = run_coco_eval(coco_gt, predictions, args.split.capitalize(), logger)
 
     # Save report
     report = {
         "timestamp":  datetime.now().isoformat(),
         "weights":    str(weights_path),
-        "split":      "val",
+        "split":      args.split,
         "threshold":  args.threshold,
         "n_images":   len(img_ids),
         "n_preds":    len(predictions),
         "metrics":    metrics,
     }
-    report_path = VAL_DIR / "val_report.json"
+    report_path = res_dir / f"{args.split}_report.json"
     with open(report_path, "w") as f:
         json.dump(report, f, indent=2)
 
     logger.info(f"\nReport saved      → {report_path}")
-    logger.info(f"Visualizations    → {VIS_DIR}  ({vis_saved} images)")
-    logger.info("Validation complete.")
+    logger.info(f"Visualizations    → {vis_dir}  ({vis_saved} images)")
+    logger.info(f"{args.split.capitalize()} complete.")
 
 
 if __name__ == "__main__":
