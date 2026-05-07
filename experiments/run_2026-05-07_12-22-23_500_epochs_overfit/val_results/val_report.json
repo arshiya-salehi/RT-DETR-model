@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-05-01T17:35:27.879875",
+  "weights": "/home/msalehib/inf117/RT-DETR-model/output/model_best.pth",
+  "split": "val",
+  "threshold": 0.05,
+  "n_images": 109,
+  "n_preds": 1233,
+  "metrics": {
+    "mAP@50:95": 0.267,
+    "mAP@50": 0.516,
+    "mAP@75": 0.2521,
+    "AP_small": 0.1,
+    "AP_medium": 0.2018,
+    "AP_large": 0.2984,
+    "per_class_AP50": {
+      "Apical Lesion": 0.23,
+      "Main Root": 0.748,
+      "Main Canal": 0.3433,
+      "Mesial Root": 0.7929,
+      "Mesial Canal": 0.3941,
+      "Distal Root": 0.6868,
+      "Distal Canal": 0.5088,
+      "Palatal Canal": 0.1683,
+      "Palatal Root": 0.778,
+      "Root Canal Filling": 0.7424,
+      "decay": 0.2839
+    }
+  }
+}

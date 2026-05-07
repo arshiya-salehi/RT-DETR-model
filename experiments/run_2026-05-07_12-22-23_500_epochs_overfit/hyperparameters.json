@@ -1,0 +1,22 @@
+{
+    "CUDA_VISIBLE_DEVICES": "1 nohup python Train.py > logs/train.log 2>&1 &",
+    "BASE_DIR": "Path(__file__).parent",
+    "DATASET_DIR": "BASE_DIR / \"dataset\"",
+    "ANN_DIR": "DATASET_DIR / \"annotations\"",
+    "IMG_DIR": "DATASET_DIR / \"images\"",
+    "OUTPUT_DIR": "BASE_DIR / \"output\"",
+    "LOG_DIR": "BASE_DIR / \"logs\"",
+    "CKPT_DIR": "OUTPUT_DIR / \"checkpoints\"",
+    "CLASS_NAMES": "[",
+    "NUM_CLASSES": "len(CLASS_NAMES)",
+    "BATCH_SIZE": "16",
+    "NUM_EPOCHS": "500",
+    "BASE_LR": "2e-4",
+    "WEIGHT_DECAY": "1e-4",
+    "MAX_GRAD_NORM": "0.1",
+    "IMG_SIZE": "1024",
+    "NUM_WORKERS": "32",
+    "SCORE_THRESH": "0.4",
+    "SAVE_EVERY": "10",
+    "PRETRAINED_MODEL": "\"PekingU/rtdetr_r50vd\""
+}
