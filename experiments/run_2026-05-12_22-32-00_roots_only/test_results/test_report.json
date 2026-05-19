@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-05-12T22:30:38.448031",
+  "weights": "output/model_best.pth",
+  "split": "test",
+  "threshold": 0.05,
+  "n_images": 110,
+  "n_preds": 690,
+  "metrics": {
+    "mAP@50:95": 0.1515,
+    "mAP@50": 0.2686,
+    "mAP@75": 0.1483,
+    "AP_small": 0.0,
+    "AP_medium": 0.0167,
+    "AP_large": 0.1553,
+    "per_class_AP50": {
+      "Apical Lesion": 0.0,
+      "Main Root": 0.7801,
+      "Main Canal": 0.0,
+      "Mesial Root": 0.6415,
+      "Mesial Canal": 0.0,
+      "Distal Root": 0.7334,
+      "Distal Canal": 0.0,
+      "Palatal Canal": 0.0,
+      "Palatal Root": 0.7977,
+      "Root Canal Filling": 0.002,
+      "decay": 0.0
+    }
+  }
+}
