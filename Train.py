@@ -14,10 +14,11 @@ Hardware: NVIDIA A100 GPU (GPU index 1 on shared server)
 
 Usage:
     conda activate inf117_rtdetr
-    CUDA_VISIBLE_DEVICES=1 python Train.py
+    CUDA_VISIBLE_DEVICES=1 python Train.py --focus all
 
-    # or as a background job (recommended on shared server):
-    CUDA_VISIBLE_DEVICES=1 nohup python Train.py > logs/train.log 2>&1 &
+    # Train on specific anatomical groups:
+    CUDA_VISIBLE_DEVICES=1 nohup python Train.py --focus roots > logs/train.log 2>&1 &
+    CUDA_VISIBLE_DEVICES=1 nohup python Train.py --focus canals > logs/train.log 2>&1 &
 
 Key differences from Mask R-CNN:
   - Detection only (bounding boxes), no instance segmentation masks
@@ -31,6 +32,7 @@ import sys
 import json
 import logging
 import math
+import argparse
 from datetime import datetime
 from pathlib import Path
 
@@ -81,6 +83,13 @@ CLASS_NAMES = [
 ]
 NUM_CLASSES = len(CLASS_NAMES)  # 11
 
+FOCUS_GROUPS = {
+    "all": set(range(11)),
+    "roots": {1, 3, 5, 8},
+    "canals": {2, 4, 6, 7},
+    "pathologies": {0, 10}
+}
+
 # ── HYPERPARAMETERS ───────────────────────────────────────────────────────────
 # Tuned for 327 training images on an A100 with RT-DETR-L
 BATCH_SIZE   = 16       # 48GB L40S can handle batch 16 at 800px
@@ -123,12 +132,13 @@ class DentalCocoDataset(torch.utils.data.Dataset):
         image_id      — int, for COCO evaluation
     """
 
-    def __init__(self, ann_path: Path, img_dir: Path, processor, augment: bool = False):
+    def __init__(self, ann_path: Path, img_dir: Path, processor, augment: bool = False, focus: str = "all"):
         self.coco      = COCO(str(ann_path))
         self.img_dir   = img_dir
         self.processor = processor
         self.augment   = augment
         self.img_ids   = sorted(self.coco.imgs.keys())
+        self.focus_classes = FOCUS_GROUPS[focus]
 
         # Build id2name from categories stored in the JSON
         self.id2label = {cat["id"]: cat["name"] for cat in self.coco.loadCats(self.coco.getCatIds())}
@@ -140,7 +150,9 @@ class DentalCocoDataset(torch.utils.data.Dataset):
             T.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.8, 1.2)),
             T.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3),
             T.RandomAdjustSharpness(sharpness_factor=2, p=0.3),
+            T.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5.0)),
             T.SanitizeBoundingBoxes(), # Safely drops boxes if they are translated out of bounds
+            T.RandomErasing(p=0.2, scale=(0.02, 0.1), ratio=(0.3, 3.3), value=0), # Cutout
         ]) if augment else None
 
     def __len__(self):
@@ -165,11 +177,18 @@ class DentalCocoDataset(torch.utils.data.Dataset):
         boxes_xyxy = []
         labels = []
         for ann in anns:
+            if ann["category_id"] not in self.focus_classes:
+                continue
             x, y, bw, bh = ann["bbox"]
             boxes_xyxy.append([x, y, x + bw, y + bh])
             labels.append(ann["category_id"])
-        boxes_tensor = torch.tensor(boxes_xyxy, dtype=torch.float32).reshape(-1, 4)
-        labels_tensor = torch.tensor(labels, dtype=torch.long)
+            
+        if len(boxes_xyxy) == 0:
+            boxes_tensor = torch.zeros((0, 4), dtype=torch.float32)
+            labels_tensor = torch.zeros((0,), dtype=torch.long)
+        else:
+            boxes_tensor = torch.tensor(boxes_xyxy, dtype=torch.float32).reshape(-1, 4)
+            labels_tensor = torch.tensor(labels, dtype=torch.long)
         # 1. Apply augmentations safely to BOTH image and boxes
         if self.aug is not None:
             image_tv = self.tv_tensors.Image(image)
@@ -227,7 +246,7 @@ def collate_fn(batch):
 
 
 # ── TRAINING LOOP ─────────────────────────────────────────────────────────────
-def train_one_epoch(model, loader, optimizer, scheduler, scaler, device, epoch, logger):
+def train_one_epoch(model, loader, optimizer, scaler, device, epoch, logger):
     model.train()
     total_loss = 0.0
     n_batches  = len(loader)
@@ -251,12 +270,11 @@ def train_one_epoch(model, loader, optimizer, scheduler, scaler, device, epoch, 
         scaler.step(optimizer)
         scaler.update()
         optimizer.zero_grad()
-        scheduler.step()
 
         total_loss += loss.item()
 
         if (batch_idx + 1) % 20 == 0 or (batch_idx + 1) == n_batches:
-            lr_now = scheduler.get_last_lr()[0]
+            lr_now = optimizer.param_groups[0]['lr']
             logger.info(
                 f"  Epoch {epoch:3d} | Batch {batch_idx+1:3d}/{n_batches} "
                 f"| Loss {loss.item():.4f} | LR {lr_now:.2e}"
@@ -289,9 +307,14 @@ def validate(model, loader, processor, device, logger):
 
 # ── MAIN ──────────────────────────────────────────────────────────────────────
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--focus", choices=["all", "roots", "canals", "pathologies"], default="all",
+                        help="Filter dataset to train only on specific anatomical groups.")
+    args = parser.parse_args()
+
     logger = setup_logging()
     logger.info("=" * 60)
-    logger.info("INF-117 Dental Detection — RT-DETR Training")
+    logger.info(f"INF-117 Dental Detection — RT-DETR Training (Focus: {args.focus.upper()})")
     logger.info("=" * 60)
 
     # GPU check
@@ -310,10 +333,10 @@ def main():
 
     # Datasets
     train_ds = DentalCocoDataset(
-        ANN_DIR / "train.json", IMG_DIR / "train", processor, augment=True
+        ANN_DIR / "train.json", IMG_DIR / "train", processor, augment=True, focus=args.focus
     )
     val_ds = DentalCocoDataset(
-        ANN_DIR / "val.json", IMG_DIR / "val", processor, augment=False
+        ANN_DIR / "val.json", IMG_DIR / "val", processor, augment=False, focus=args.focus
     )
 
     train_loader = DataLoader(
@@ -350,10 +373,8 @@ def main():
     optimizer = AdamW(param_groups, weight_decay=WEIGHT_DECAY)
 
     total_steps = NUM_EPOCHS * len(train_loader)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, 
-        T_max=total_steps, 
-        eta_min=1e-6
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='min', factor=0.5, patience=15, min_lr=1e-6
     )
 
     scaler = torch.amp.GradScaler()
@@ -365,9 +386,12 @@ def main():
     for epoch in range(1, NUM_EPOCHS + 1):
         logger.info(f"\nEpoch {epoch}/{NUM_EPOCHS}")
         train_loss = train_one_epoch(
-            model, train_loader, optimizer, scheduler, scaler, device, epoch, logger
+            model, train_loader, optimizer, scaler, device, epoch, logger
         )
         val_loss = validate(model, val_loader, processor, device, logger)
+        
+        # Step the plateau scheduler
+        scheduler.step(val_loss)
 
         history.append({"epoch": epoch, "train_loss": train_loss, "val_loss": val_loss})
         logger.info(f"  Train loss: {train_loss:.4f}  |  Val loss: {val_loss:.4f}")
