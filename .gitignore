@@ -49,3 +49,9 @@ dataset/
 output/
 *.pth
 training_history.json
+
+# Generated output & experiments
+augmented_samples/
+augmented_samples_stage2/
+experiments/
+share_with_mentor.zip
