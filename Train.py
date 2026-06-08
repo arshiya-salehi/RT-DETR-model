@@ -36,9 +36,9 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
-# ── GPU LOCK ──────────────────────────────────────────────────────────────────
-# Lock to GPU 1 on the shared server. Must come before any torch import.
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+# Lock to GPU 1 on the shared server (default if not set). Must come before any torch import.
+if "CUDA_VISIBLE_DEVICES" not in os.environ:
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import torch
 from torch.utils.data import DataLoader

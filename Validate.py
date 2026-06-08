@@ -32,7 +32,8 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+if "CUDA_VISIBLE_DEVICES" not in os.environ:
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import torch
 import numpy as np

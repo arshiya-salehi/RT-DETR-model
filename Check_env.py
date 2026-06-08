@@ -12,7 +12,8 @@ Usage:
 import sys
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+if "CUDA_VISIBLE_DEVICES" not in os.environ:
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 print("=" * 60)
 print("INF-117 RT-DETR Environment Check")
